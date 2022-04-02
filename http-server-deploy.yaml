@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-server-test
+  namespace: default
+  labels:
+    app: http-server-test
+spec:
+  selector:
+    matchLabels:
+      app: http-server-test
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: http-server-test
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: http-server-test
+          image: quay.io/masayag/http-server-test:latest
+          command:
+            - /http_server_test
+          env:
+            - name: SLEEP_TIME
+              value: "3s"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9090
+              name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: http-server-test
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9090
+      targetPort: http
+  selector:
+    app: http-server-test
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: http-server-test
+  namespace: default
+spec:
+  port:
+    targetPort: http
+  to:
+    kind: Service
+    name: http-server-test
+  wildcardPolicy: None
